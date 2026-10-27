@@ -5,25 +5,6 @@ import { buscarRanking, salvarPontuacao } from './services/rankingApi'
 
 const QUIZ_LENGTH = 10
 const LETTERS = ['A', 'B', 'C', 'D']
-const STORAGE_KEY = 'quiz-fraternidade-perfis'
-
-function loadProfiles() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    const parsed = saved ? JSON.parse(saved) : []
-    return Array.isArray(parsed) ? parsed : []
-  } catch {
-    return []
-  }
-}
-
-function persistProfiles(profiles) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(profiles))
-  } catch {
-    // O quiz continua funcionando mesmo se o navegador bloquear o armazenamento local.
-  }
-}
 
 function shuffle(items) {
   const copy = [...items]
@@ -401,43 +382,6 @@ const IntroButtonArea = styled.div`
   margin: 24px auto 0;
 `
 
-const ProfileList = styled.div`
-  display: grid;
-  gap: 8px;
-  margin-bottom: 22px;
-`
-
-const ProfileButton = styled.button`
-  display: flex;
-  width: 100%;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 2px solid #c5e5f2;
-  border-radius: 13px;
-  color: #164766;
-  background: #f4fbff;
-  text-align: left;
-  cursor: pointer;
-  overflow-wrap: anywhere;
-
-  &:hover {
-    border-color: #168bb8;
-  }
-
-  span:last-child {
-    color: #087eae;
-    font-weight: 800;
-    white-space: nowrap;
-  }
-
-  @media (max-width: 360px) {
-    align-items: flex-start;
-    flex-direction: column;
-  }
-`
-
 const Ranking = styled.ol`
   margin: 0;
   padding: 0;
@@ -539,9 +483,8 @@ const Footer = styled.footer`
 
 export default function App() {
   const [introSeen, setIntroSeen] = useState(false)
-  const [profiles, setProfiles] = useState(loadProfiles)
-  const [activeProfileId, setActiveProfileId] = useState(null)
   const [name, setName] = useState('')
+  const [playerName, setPlayerName] = useState('')
   const [questions, setQuestions] = useState(prepareQuestions)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [score, setScore] = useState(0)
@@ -558,7 +501,6 @@ export default function App() {
   const answered = selectedIndex !== null
   const selectedCorrectly = answered && selectedIndex === currentQuestion.correctIndex
   const progress = ((currentIndex + (answered ? 1 : 0)) / QUIZ_LENGTH) * 100
-  const activeProfile = profiles.find((profile) => profile.id === activeProfileId)
 
   async function loadRanking() {
     setRankingLoading(true)
@@ -593,55 +535,14 @@ export default function App() {
     savingRef.current = false
   }
 
-  function startWithProfile(profileId) {
-    setActiveProfileId(profileId)
-    resetQuiz()
-  }
-
-  function createProfile(event) {
+  function startQuiz(event) {
     event.preventDefault()
     const cleanName = name.trim().slice(0, 30)
     if (!cleanName) return
 
-    const existing = profiles.find(
-      (profile) => profile.name.toLocaleLowerCase() === cleanName.toLocaleLowerCase(),
-    )
-
-    if (existing) {
-      setName('')
-      startWithProfile(existing.id)
-      return
-    }
-
-    const profile = {
-      id: crypto.randomUUID(),
-      name: cleanName,
-      bestScore: 0,
-      lastScore: 0,
-      attempts: 0,
-    }
-    const updatedProfiles = [...profiles, profile]
-    setProfiles(updatedProfiles)
-    persistProfiles(updatedProfiles)
+    setPlayerName(cleanName)
     setName('')
-    startWithProfile(profile.id)
-  }
-
-  function saveLocalResult(finalScore) {
-    setProfiles((currentProfiles) => {
-      const updatedProfiles = currentProfiles.map((profile) =>
-        profile.id === activeProfileId
-          ? {
-              ...profile,
-              bestScore: Math.max(profile.bestScore, finalScore),
-              lastScore: finalScore,
-              attempts: profile.attempts + 1,
-            }
-          : profile,
-      )
-      persistProfiles(updatedProfiles)
-      return updatedProfiles
-    })
+    resetQuiz()
   }
 
   function answerQuestion(optionIndex) {
@@ -657,11 +558,10 @@ export default function App() {
 
       savingRef.current = true
       setSavingScore(true)
-      saveLocalResult(score)
       setFinished(true)
 
       try {
-        await salvarPontuacao(activeProfile.name, score)
+        await salvarPontuacao(playerName, score)
         const updatedRanking = await buscarRanking()
         setRanking(updatedRanking)
       } catch (error) {
@@ -686,7 +586,7 @@ export default function App() {
   }
 
   function returnToProfiles() {
-    setActiveProfileId(null)
+    setPlayerName('')
     setShowRanking(false)
     resetQuiz()
   }
@@ -769,10 +669,10 @@ export default function App() {
                 Voltar
               </SecondaryButton>
             </div>
-          ) : !activeProfile ? (
+          ) : !playerName ? (
             <div>
-              <SectionTitle>Criar perfil</SectionTitle>
-              <ProfileForm onSubmit={createProfile}>
+              <SectionTitle>Digite seu nome para começar</SectionTitle>
+              <ProfileForm onSubmit={startQuiz}>
                 <NameInput
                   type="text"
                   value={name}
@@ -781,36 +681,17 @@ export default function App() {
                   aria-label="Nome do jogador"
                   onChange={(event) => setName(event.target.value)}
                 />
-                <PrimaryButton type="submit">Criar perfil e jogar</PrimaryButton>
+                <PrimaryButton type="submit">Começar o quiz</PrimaryButton>
               </ProfileForm>
 
               <SecondaryButton type="button" onClick={() => setShowRanking(true)}>
                 🏆 Ver ranking
               </SecondaryButton>
 
-              {profiles.length > 0 && (
-                <>
-                  <SectionTitle>Quem vai jogar?</SectionTitle>
-                  <ProfileList>
-                    {profiles.map((profile) => (
-                      <ProfileButton
-                        key={profile.id}
-                        type="button"
-                        onClick={() => startWithProfile(profile.id)}
-                      >
-                        <strong>{profile.name}</strong>
-                        <span>Jogar →</span>
-                      </ProfileButton>
-                    ))}
-                  </ProfileList>
-                </>
-              )}
-
             </div>
           ) : finished ? (
             <Result>
               <h2>Quiz concluído! 🎉</h2>
-              <p><strong>{activeProfile.name}</strong></p>
               <Score>{score}/10</Score>
               <p>{getResultMessage(score)}</p>
               <SectionTitle>🏆 Ranking</SectionTitle>
@@ -838,7 +719,7 @@ export default function App() {
           ) : (
             <>
               <Info>
-                <span>{activeProfile.name} • {currentIndex + 1}/{QUIZ_LENGTH}</span>
+                <span>Questão {currentIndex + 1}/{QUIZ_LENGTH}</span>
                 <span>⭐ {score} {score === 1 ? 'ponto' : 'pontos'}</span>
               </Info>
               <ProgressTrack

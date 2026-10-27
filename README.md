@@ -2,7 +2,7 @@
 
 Quiz escolar feito em React, Vite e styled-components. A cada rodada, o site sorteia 10 das 22 perguntas e também embaralha as alternativas.
 
-O jogador cria um perfil usando apenas o nome. Os nomes dos perfis são mantidos no `localStorage` do navegador, enquanto o ranking oficial é carregado da API para ser compartilhado entre dispositivos.
+O jogador informa o nome para começar. O nome é enviado somente ao finalizar a partida e aparece no ranking oficial carregado da API; não há perfis salvos no navegador.
 
 ## Configurar a API
 
