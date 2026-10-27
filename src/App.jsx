@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import styled, { createGlobalStyle } from 'styled-components'
 import { questionBank } from './questions'
+import { buscarRanking, salvarPontuacao } from './services/rankingApi'
 
 const QUIZ_LENGTH = 10
 const LETTERS = ['A', 'B', 'C', 'D']
@@ -325,12 +326,18 @@ const PrimaryButton = styled.button`
   background: linear-gradient(90deg, #087eae, #13a9ca);
   box-shadow: 0 10px 22px rgba(8, 126, 174, 0.2);
   font-weight: 800;
-  cursor: pointer;
+  cursor: ${({ disabled }) => (disabled ? 'wait' : 'pointer')};
   transition: transform 160ms ease, box-shadow 160ms ease;
 
   &:hover {
     box-shadow: 0 13px 26px rgba(8, 126, 174, 0.26);
     transform: translateY(-1px);
+  }
+
+  &:disabled {
+    opacity: 0.7;
+    box-shadow: none;
+    transform: none;
   }
 `
 
@@ -461,6 +468,17 @@ const RankingItem = styled.li`
   }
 `
 
+const StatusMessage = styled.p`
+  margin: 14px 0;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: ${({ $error }) => ($error ? '#9c3030' : '#39748e')};
+  background: ${({ $error }) => ($error ? '#fff2f2' : '#eef8fc')};
+  font-size: 0.92rem;
+  line-height: 1.5;
+  text-align: center;
+`
+
 const SecondaryButton = styled.button`
   width: 100%;
   margin-top: 10px;
@@ -470,7 +488,11 @@ const SecondaryButton = styled.button`
   color: #087eae;
   background: #fff;
   font-weight: 800;
-  cursor: pointer;
+  cursor: ${({ disabled }) => (disabled ? 'wait' : 'pointer')};
+
+  &:disabled {
+    opacity: 0.65;
+  }
 `
 
 const Result = styled.div`
@@ -488,6 +510,10 @@ const Result = styled.div`
     max-width: 400px;
     color: #51798a;
     line-height: 1.55;
+  }
+
+  > button:first-of-type {
+    margin-top: 16px;
   }
 `
 
@@ -521,15 +547,40 @@ export default function App() {
   const [score, setScore] = useState(0)
   const [selectedIndex, setSelectedIndex] = useState(null)
   const [finished, setFinished] = useState(false)
+  const [showRanking, setShowRanking] = useState(false)
+  const [ranking, setRanking] = useState([])
+  const [rankingLoading, setRankingLoading] = useState(false)
+  const [rankingError, setRankingError] = useState('')
+  const [savingScore, setSavingScore] = useState(false)
+  const savingRef = useRef(false)
 
   const currentQuestion = questions[currentIndex]
   const answered = selectedIndex !== null
   const selectedCorrectly = answered && selectedIndex === currentQuestion.correctIndex
   const progress = ((currentIndex + (answered ? 1 : 0)) / QUIZ_LENGTH) * 100
   const activeProfile = profiles.find((profile) => profile.id === activeProfileId)
-  const ranking = [...profiles]
-    .filter((profile) => profile.attempts > 0)
-    .sort((first, second) => second.bestScore - first.bestScore || first.name.localeCompare(second.name))
+
+  async function loadRanking() {
+    setRankingLoading(true)
+    setRankingError('')
+
+    try {
+      const updatedRanking = await buscarRanking()
+      setRanking(updatedRanking)
+    } catch (error) {
+      setRankingError(
+        error instanceof TypeError
+          ? 'Não foi possível acessar o ranking. A API do Render pode estar iniciando; tente novamente em alguns instantes.'
+          : error.message || 'Não foi possível carregar o ranking agora.',
+      )
+    } finally {
+      setRankingLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (showRanking) void loadRanking()
+  }, [showRanking])
 
   function resetQuiz() {
     setQuestions(prepareQuestions())
@@ -537,6 +588,9 @@ export default function App() {
     setScore(0)
     setSelectedIndex(null)
     setFinished(false)
+    setSavingScore(false)
+    setRankingError('')
+    savingRef.current = false
   }
 
   function startWithProfile(profileId) {
@@ -573,7 +627,7 @@ export default function App() {
     startWithProfile(profile.id)
   }
 
-  function saveResult(finalScore) {
+  function saveLocalResult(finalScore) {
     setProfiles((currentProfiles) => {
       const updatedProfiles = currentProfiles.map((profile) =>
         profile.id === activeProfileId
@@ -597,10 +651,29 @@ export default function App() {
     if (optionIndex === currentQuestion.correctIndex) setScore((value) => value + 1)
   }
 
-  function goToNextQuestion() {
+  async function goToNextQuestion() {
     if (currentIndex === QUIZ_LENGTH - 1) {
-      saveResult(score)
+      if (savingRef.current) return
+
+      savingRef.current = true
+      setSavingScore(true)
+      saveLocalResult(score)
       setFinished(true)
+
+      try {
+        await salvarPontuacao(activeProfile.name, score)
+        const updatedRanking = await buscarRanking()
+        setRanking(updatedRanking)
+      } catch (error) {
+        setRankingError(
+          error instanceof TypeError
+            ? 'Sua nota continua aparecendo nesta tela, mas não foi possível falar com a API. O serviço do Render pode estar iniciando; tente novamente em alguns instantes.'
+            : error.message || 'Sua nota não pôde ser salva no ranking agora.',
+        )
+      } finally {
+        savingRef.current = false
+        setSavingScore(false)
+      }
       return
     }
 
@@ -614,6 +687,7 @@ export default function App() {
 
   function returnToProfiles() {
     setActiveProfileId(null)
+    setShowRanking(false)
     resetQuiz()
   }
 
@@ -667,6 +741,34 @@ export default function App() {
                 </PrimaryButton>
               </IntroButtonArea>
             </IntroArticle>
+          ) : showRanking ? (
+            <div>
+              <SectionTitle>🏆 Ranking geral</SectionTitle>
+              {rankingLoading && <StatusMessage>Carregando ranking...</StatusMessage>}
+              {rankingError && <StatusMessage $error>{rankingError}</StatusMessage>}
+              {!rankingLoading && !rankingError && ranking.length === 0 && (
+                <StatusMessage>Ainda não há pontuações no ranking.</StatusMessage>
+              )}
+              {ranking.length > 0 && (
+                <Ranking>
+                  {ranking.map((player, index) => (
+                    <RankingItem key={player.id ?? `${player.nome}-${index}`}>
+                      <span>{index + 1}º</span>
+                      <strong>{player.nome}</strong>
+                      <span>{player.pontos}/10</span>
+                    </RankingItem>
+                  ))}
+                </Ranking>
+              )}
+              {rankingError && (
+                <PrimaryButton type="button" disabled={rankingLoading} onClick={loadRanking}>
+                  Tentar novamente
+                </PrimaryButton>
+              )}
+              <SecondaryButton type="button" onClick={() => setShowRanking(false)}>
+                Voltar
+              </SecondaryButton>
+            </div>
           ) : !activeProfile ? (
             <div>
               <SectionTitle>Criar perfil</SectionTitle>
@@ -682,6 +784,10 @@ export default function App() {
                 <PrimaryButton type="submit">Criar perfil e jogar</PrimaryButton>
               </ProfileForm>
 
+              <SecondaryButton type="button" onClick={() => setShowRanking(true)}>
+                🏆 Ver ranking
+              </SecondaryButton>
+
               {profiles.length > 0 && (
                 <>
                   <SectionTitle>Quem vai jogar?</SectionTitle>
@@ -693,27 +799,13 @@ export default function App() {
                         onClick={() => startWithProfile(profile.id)}
                       >
                         <strong>{profile.name}</strong>
-                        <span>{profile.attempts ? `${profile.bestScore}/10` : 'Novo'}</span>
+                        <span>Jogar →</span>
                       </ProfileButton>
                     ))}
                   </ProfileList>
                 </>
               )}
 
-              {ranking.length > 0 && (
-                <>
-                  <SectionTitle>🏆 Ranking</SectionTitle>
-                  <Ranking>
-                    {ranking.map((profile, index) => (
-                      <RankingItem key={profile.id}>
-                        <span>{index + 1}º</span>
-                        <strong>{profile.name}</strong>
-                        <span>{profile.bestScore}/10</span>
-                      </RankingItem>
-                    ))}
-                  </Ranking>
-                </>
-              )}
             </div>
           ) : finished ? (
             <Result>
@@ -722,19 +814,24 @@ export default function App() {
               <Score>{score}/10</Score>
               <p>{getResultMessage(score)}</p>
               <SectionTitle>🏆 Ranking</SectionTitle>
-              <Ranking>
-                {ranking.map((profile, index) => (
-                  <RankingItem key={profile.id}>
+              {savingScore && <StatusMessage>Salvando pontuação e atualizando ranking...</StatusMessage>}
+              {rankingError && <StatusMessage $error>{rankingError}</StatusMessage>}
+              {!savingScore && !rankingError && ranking.length === 0 && (
+                <StatusMessage>Ainda não há pontuações no ranking.</StatusMessage>
+              )}
+              {ranking.length > 0 && <Ranking>
+                {ranking.map((player, index) => (
+                  <RankingItem key={player.id ?? `${player.nome}-${index}`}>
                     <span>{index + 1}º</span>
-                    <strong>{profile.name}</strong>
-                    <span>{profile.bestScore}/10</span>
+                    <strong>{player.nome}</strong>
+                    <span>{player.pontos}/10</span>
                   </RankingItem>
                 ))}
-              </Ranking>
-              <PrimaryButton type="button" onClick={restartQuiz}>
+              </Ranking>}
+              <PrimaryButton type="button" disabled={savingScore} onClick={restartQuiz}>
                 Jogar novamente
               </PrimaryButton>
-              <SecondaryButton type="button" onClick={returnToProfiles}>
+              <SecondaryButton type="button" disabled={savingScore} onClick={returnToProfiles}>
                 Trocar de perfil
               </SecondaryButton>
             </Result>
@@ -776,8 +873,12 @@ export default function App() {
               </Feedback>
 
               {answered && (
-                <PrimaryButton type="button" onClick={goToNextQuestion}>
-                  {currentIndex === QUIZ_LENGTH - 1 ? 'Ver resultado' : 'Próxima questão'} →
+                <PrimaryButton type="button" disabled={savingScore} onClick={goToNextQuestion}>
+                  {savingScore
+                    ? 'Salvando...'
+                    : currentIndex === QUIZ_LENGTH - 1
+                      ? 'Ver resultado'
+                      : 'Próxima questão'} →
                 </PrimaryButton>
               )}
             </>

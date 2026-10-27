@@ -2,7 +2,17 @@
 
 Quiz escolar feito em React, Vite e styled-components. A cada rodada, o site sorteia 10 das 22 perguntas e também embaralha as alternativas.
 
-O jogador cria um perfil usando apenas o nome. Perfis, tentativas e melhores pontuações são salvos como JSON no `localStorage`, então continuam disponíveis depois de recarregar a página no mesmo navegador. O ranking não é compartilhado entre dispositivos porque o projeto não usa banco de dados.
+O jogador cria um perfil usando apenas o nome. Os nomes dos perfis são mantidos no `localStorage` do navegador, enquanto o ranking oficial é carregado da API para ser compartilhado entre dispositivos.
+
+## Configurar a API
+
+Copie `.env.example` para `.env` e informe a URL real da API do Render, sem barra no final:
+
+```env
+VITE_API_URL=https://sua-api.onrender.com
+```
+
+Na Vercel, cadastre a mesma variável `VITE_API_URL` em **Settings → Environment Variables** e faça um novo deploy.
 
 ## Rodar no computador
 

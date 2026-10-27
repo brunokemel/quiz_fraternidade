@@ -2,5 +2,8 @@ node_modules
 dist
 .vercel
 .planning
+.env
+.env.*
+!.env.example
 *.local
 *.log
