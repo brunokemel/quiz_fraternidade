@@ -118,11 +118,12 @@ const Page = styled.main`
     padding: 14px;
 
     &::before {
-      background-image:
-        linear-gradient(rgba(235, 246, 255, 0.22), rgba(235, 246, 255, 0.3)),
-        url("https://upload.wikimedia.org/wikipedia/commons/0/08/Beata_Savina_Petrilli.jpg");
-      background-position: center, center top 1%;
-      background-size: cover, 230px auto;
+      background-image: linear-gradient(
+        rgba(235, 246, 255, 0.64),
+        rgba(235, 246, 255, 0.76)
+      );
+      background-position: center;
+      background-size: cover;
     }
   }
 
@@ -155,6 +156,37 @@ const Card = styled.section`
 const Header = styled.header`
   margin-bottom: 20px;
   text-align: center;
+`
+
+const MobileImages = styled.div`
+  display: none;
+
+  @media (max-width: 640px) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: -4px 0 22px;
+
+    img {
+      width: 100%;
+      height: 120px;
+      border: 2px solid #c5e5f2;
+      border-radius: 14px;
+      background: #eaf4ff;
+      object-fit: cover;
+      object-position: center 18%;
+    }
+  }
+
+  @media (max-width: 380px) {
+    gap: 7px;
+    margin-bottom: 18px;
+
+    img {
+      height: 96px;
+      border-radius: 11px;
+    }
+  }
 `
 
 const Logo = styled.div`
@@ -602,6 +634,17 @@ export default function App() {
             <Title>Quiz da Fraternidade</Title>
             <Subtitle>Colégio Nossa Senhora do Ó • Nível intermediário</Subtitle>
           </Header>
+
+          <MobileImages aria-label="Imagens de Beata Savina Petrilli">
+            <img
+              src="https://upload.wikimedia.org/wikipedia/commons/0/08/Beata_Savina_Petrilli.jpg"
+              alt="Beata Savina Petrilli"
+            />
+            <img
+              src="https://3.bp.blogspot.com/-sO_Zb-5neOE/VTFP4E4QDXI/AAAAAAAAFgY/gXFq3NvGR28/s1600/Beata%2BSavina%2BPetrilli%2B2.jpg"
+              alt="Retrato de Beata Savina Petrilli"
+            />
+          </MobileImages>
 
           {!introSeen ? (
             <IntroArticle>
