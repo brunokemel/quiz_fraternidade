@@ -65,12 +65,16 @@ const GlobalStyle = createGlobalStyle`
 
   html {
     color-scheme: light;
+    width: 100%;
   }
 
   body {
     margin: 0;
+    width: 100%;
     min-width: 320px;
     min-height: 100vh;
+    min-height: 100dvh;
+    overflow-x: hidden;
     color: #123f54;
     font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     background: #eaf4ff;
@@ -90,6 +94,7 @@ const Page = styled.main`
   position: relative;
   display: grid;
   min-height: 100vh;
+  min-height: 100dvh;
   place-items: center;
   padding: 18px;
   isolation: isolate;
@@ -120,15 +125,31 @@ const Page = styled.main`
       background-size: cover, 230px auto;
     }
   }
+
+  @media (max-width: 380px) {
+    padding: 8px;
+  }
+
+  @media (max-height: 700px) and (min-width: 641px) {
+    align-items: start;
+    padding-block: 18px;
+  }
 `
 
 const Card = styled.section`
   width: min(100%, ${({ $wide }) => ($wide ? '720px' : '440px')});
-  padding: 24px;
+  min-width: 0;
+  padding: clamp(18px, 5vw, 24px);
   border: 2px solid #168bb8;
   border-radius: 24px;
   background: rgba(255, 255, 255, 0.84);
   box-shadow: 0 12px 35px rgba(7, 84, 123, 0.21);
+  overflow-wrap: anywhere;
+
+  @media (max-width: 380px) {
+    padding: 16px 14px;
+    border-radius: 18px;
+  }
 `
 
 const Header = styled.header`
@@ -153,28 +174,42 @@ const Logo = styled.div`
     height: 100%;
     object-fit: contain;
   }
+
+  @media (max-width: 380px) {
+    width: 88px;
+    height: 88px;
+  }
 `
 
 const Title = styled.h1`
   margin: 8px 0;
   color: #087eae;
-  font-size: 24px;
+  font-size: clamp(1.35rem, 7vw, 24px);
 `
 
 const Subtitle = styled.p`
   margin: 8px 0 20px;
   color: #39748e;
   font-size: 1rem;
+
+  @media (max-width: 380px) {
+    font-size: 0.88rem;
+  }
 `
 
 const Info = styled.div`
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 10px;
   color: #386b80;
   font-size: 0.9rem;
   font-weight: 700;
+
+  @media (max-width: 380px) {
+    font-size: 0.8rem;
+  }
 `
 
 const ProgressTrack = styled.div`
@@ -197,6 +232,11 @@ const Question = styled.h2`
   color: #164766;
   font-size: 19px;
   line-height: 1.4;
+
+  @media (max-width: 380px) {
+    margin: 18px 0 14px;
+    font-size: 17px;
+  }
 `
 
 const Options = styled.div`
@@ -219,11 +259,17 @@ const OptionButton = styled.button`
   line-height: 1.4;
   cursor: ${({ disabled }) => (disabled ? 'default' : 'pointer')};
   transition: border-color 160ms ease, background 160ms ease, transform 160ms ease;
+  overflow-wrap: anywhere;
 
   &:hover:not(:disabled) {
     border-color: #4bb1cc;
     background: #edf9fc;
     transform: translateY(-1px);
+  }
+
+  @media (max-width: 380px) {
+    padding: 11px;
+    font-size: 0.9rem;
   }
 `
 
@@ -301,6 +347,14 @@ const IntroArticle = styled.article`
     line-height: 1.7;
     text-align: justify;
   }
+
+  @media (max-width: 520px) {
+    p {
+      font-size: 0.94rem;
+      line-height: 1.6;
+      text-align: left;
+    }
+  }
 `
 
 const IntroButtonArea = styled.div`
@@ -327,6 +381,7 @@ const ProfileButton = styled.button`
   background: #f4fbff;
   text-align: left;
   cursor: pointer;
+  overflow-wrap: anywhere;
 
   &:hover {
     border-color: #168bb8;
@@ -336,6 +391,11 @@ const ProfileButton = styled.button`
     color: #087eae;
     font-weight: 800;
     white-space: nowrap;
+  }
+
+  @media (max-width: 360px) {
+    align-items: flex-start;
+    flex-direction: column;
   }
 `
 
@@ -347,7 +407,7 @@ const Ranking = styled.ol`
 
 const RankingItem = styled.li`
   display: grid;
-  grid-template-columns: 34px 1fr auto;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   gap: 8px;
   align-items: center;
   padding: 10px 6px;
@@ -412,6 +472,11 @@ const Footer = styled.footer`
   color: #618293;
   font-size: 0.82rem;
   text-align: center;
+
+  @media (max-width: 380px) {
+    margin-top: 20px;
+    font-size: 0.74rem;
+  }
 `
 
 export default function App() {
