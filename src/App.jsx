@@ -123,7 +123,7 @@ const Page = styled.main`
 `
 
 const Card = styled.section`
-  width: min(100%, 440px);
+  width: min(100%, ${({ $wide }) => ($wide ? '720px' : '440px')});
   padding: 24px;
   border: 2px solid #168bb8;
   border-radius: 24px;
@@ -284,6 +284,30 @@ const SectionTitle = styled.h2`
   font-size: 1.1rem;
 `
 
+const IntroArticle = styled.article`
+  color: #164766;
+
+  h2 {
+    margin: 0 0 18px;
+    color: #087eae;
+    font-size: clamp(1.35rem, 4vw, 1.75rem);
+    line-height: 1.25;
+    text-align: center;
+  }
+
+  p {
+    margin: 0 0 16px;
+    font-size: 1rem;
+    line-height: 1.7;
+    text-align: justify;
+  }
+`
+
+const IntroButtonArea = styled.div`
+  max-width: 380px;
+  margin: 24px auto 0;
+`
+
 const ProfileList = styled.div`
   display: grid;
   gap: 8px;
@@ -391,6 +415,7 @@ const Footer = styled.footer`
 `
 
 export default function App() {
+  const [introSeen, setIntroSeen] = useState(false)
   const [profiles, setProfiles] = useState(loadProfiles)
   const [activeProfileId, setActiveProfileId] = useState(null)
   const [name, setName] = useState('')
@@ -506,14 +531,35 @@ export default function App() {
     <>
       <GlobalStyle />
       <Page>
-        <Card aria-live="polite">
+        <Card $wide={!introSeen} aria-live="polite">
           <Header>
             <Logo><img src="/logo-colegio.jpg" alt="Logotipo do Colégio Nossa Senhora do Ó" /></Logo>
             <Title>Quiz da Fraternidade</Title>
             <Subtitle>Colégio Nossa Senhora do Ó • Nível intermediário</Subtitle>
           </Header>
 
-          {!activeProfile ? (
+          {!introSeen ? (
+            <IntroArticle>
+              <h2>🏠 Moradia Digna e a Campanha da Fraternidade</h2>
+              <p>
+                A moradia digna é um direito fundamental de todas as pessoas. Ter uma casa adequada é essencial para viver com saúde, segurança, conforto e respeito. Uma moradia digna deve oferecer proteção contra o frio, o calor e a chuva, além de ter água potável, energia elétrica, saneamento básico e condições adequadas de higiene. Ter um lar também ajuda as famílias a viverem com mais tranquilidade e qualidade de vida.
+              </p>
+              <p>
+                Infelizmente, muitas pessoas no Brasil não possuem uma moradia adequada. Algumas famílias vivem em casas pequenas, com infiltrações, sem saneamento básico ou em locais que apresentam riscos. Outras pessoas não têm casa e precisam viver nas ruas ou em abrigos. Essa realidade mostra que ainda existe muita desigualdade social em nosso país.
+              </p>
+              <p>
+                A falta de moradia digna pode trazer diversos problemas para a população. A ausência de água tratada e de saneamento básico pode causar doenças. Além disso, crianças que vivem em condições precárias podem enfrentar dificuldades para estudar, descansar e realizar suas atividades diárias. Por isso, garantir uma moradia adequada é uma forma de proteger a saúde, a educação e o bem-estar das pessoas.
+              </p>
+              <p>
+                A Campanha da Fraternidade, promovida pela Igreja Católica, busca conscientizar a sociedade sobre problemas sociais e incentivar atitudes de solidariedade. Por meio de suas reflexões, ela nos convida a olhar com atenção para as pessoas que enfrentam dificuldades e a reconhecer que todos merecem viver com dignidade. A campanha também nos ensina a importância do amor ao próximo, da partilha e da responsabilidade com aqueles que mais precisam.
+              </p>
+              <IntroButtonArea>
+                <PrimaryButton type="button" onClick={() => setIntroSeen(true)}>
+                  Continuar para o quiz →
+                </PrimaryButton>
+              </IntroButtonArea>
+            </IntroArticle>
+          ) : !activeProfile ? (
             <div>
               <SectionTitle>Criar perfil</SectionTitle>
               <ProfileForm onSubmit={createProfile}>
